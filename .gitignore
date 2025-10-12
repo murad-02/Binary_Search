@@ -1,0 +1,32 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyd
+*.pyo
+*.egg-info/
+
+# Virtual Environment
+# Typically named 'venv', 'env', or '.venv'
+venv/
+env/
+.venv/
+
+# Dependencies / Packages
+# Ignore installed packages for consistency across systems
+.eggs/
+*.egg
+*.whl
+
+# Build / Distribution
+dist/
+build/
+*.spec
+
+# Logs and Database
+*.log
+*.sqlite3
+db.sqlite3
+
+# OS generated files
+.DS_Store
+Thumbs.db
