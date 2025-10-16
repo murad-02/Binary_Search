@@ -14,27 +14,51 @@ def binary_search(arr, target, visualize=False):
     Returns:
         int: Index of target if found, else -1.
     """
+    # Reuse the step generator to keep logic in one place.
+    index = -1
+    step_num = 1
+    for step in binary_search_steps(arr, target):
+        if visualize:
+            print(f"[Step {step_num}] Low={step['low']}, Mid={step['mid']}, High={step['high']}, Checking={step['midValue']}")
+        step_num += 1
+        if step.get("found"):
+            if visualize:
+                print(f"✅ Element {target} found at index {step['mid']}")
+            index = step["mid"]
+            break
+
+    if index == -1 and visualize:
+        print(f"❌ Element {target} not found in the array.")
+
+    return index
+
+
+def binary_search_steps(arr, target):
+    """
+    Generator that yields each step of binary search as a dict with low, mid, high and midValue.
+
+    Yields:
+        dict: { 'low': int, 'mid': int, 'high': int, 'midValue': number, 'found': bool }
+
+    This keeps the core algorithm in one place so other code (like a visualizer) can
+    iterate the steps without duplicating logic.
+    """
     low, high = 0, len(arr) - 1
-    step = 1
 
     while low <= high:
         mid = (low + high) // 2
-        if visualize:
-            print(f"[Step {step}] Low={low}, Mid={mid}, High={high}, Checking={arr[mid]}")
-        step += 1
+        mid_val = arr[mid]
+        # Yield the current step state
+        yield {"low": low, "mid": mid, "high": high, "midValue": mid_val, "found": (mid_val == target)}
 
-        if arr[mid] == target:
-            if visualize:
-                print(f"✅ Element {target} found at index {mid}")
-            return mid
-        elif arr[mid] < target:
+        if mid_val == target:
+            return
+        elif mid_val < target:
             low = mid + 1
         else:
             high = mid - 1
 
-    if visualize:
-        print(f"❌ Element {target} not found in the array.")
-    return -1
+    # If we exit the loop, nothing more to yield: caller will interpret as not found.
 
 
 def get_user_input():
