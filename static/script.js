@@ -14,6 +14,12 @@ function reset() {
   currentBoxes = [];
   arrayContainer.innerHTML = '';
   messageDiv.innerHTML = '';
+  // Clear notes panel
+  const notes = document.getElementById('notes');
+  if (notes) notes.innerHTML = '';
+  // Reset inputs
+  arrayInput.value = '';
+  targetInput.value = '';
 }
 
 function renderArray(arr) {
@@ -33,6 +39,17 @@ function clearHighlights() {
     b.classList.remove('low', 'mid', 'high', 'found', 'fade-out');
     b.classList.add('fade-in');
   });
+}
+
+function appendNote(text, kind = 'normal') {
+  const notes = document.getElementById('notes');
+  if (!notes) return;
+  const div = document.createElement('div');
+  div.className = `note-entry ${kind}`;
+  div.textContent = text;
+  notes.appendChild(div);
+  // auto-scroll to bottom
+  notes.scrollTop = notes.scrollHeight;
 }
 
 function setHighlight(index, cls) {
@@ -64,19 +81,21 @@ async function animateSteps(steps, stepDelay = 1200) {
     // Show LOW
     clearHighlights();
     setHighlight(s.low, 'low');
-    await sleep( Math.max(1000, Math.min(1500, stepDelay)) );
+  // Append the descriptive message for this step (first time we display it)
+  if (s.message) appendNote(s.message, 'normal');
+  await sleep( Math.max(1000, Math.min(1500, stepDelay)) );
     if (abortAnimation) return;
 
     // Show MID
     removeHighlight(s.low, 'low');
     setHighlight(s.mid, 'mid');
-    await sleep( Math.max(1000, Math.min(1500, stepDelay)) );
+  await sleep( Math.max(1000, Math.min(1500, stepDelay)) );
     if (abortAnimation) return;
 
     // Show HIGH
     removeHighlight(s.mid, 'mid');
     setHighlight(s.high, 'high');
-    await sleep( Math.max(1000, Math.min(1500, stepDelay)) );
+  await sleep( Math.max(1000, Math.min(1500, stepDelay)) );
     if (abortAnimation) return;
 
     // Clear high highlight before next step (but keep fade)
@@ -87,19 +106,31 @@ async function animateSteps(steps, stepDelay = 1200) {
       clearHighlights();
       setHighlight(s.mid, 'found');
       messageDiv.innerHTML = `<div class="text-success">Element found at index ${s.mid}.</div>`;
+      appendNote(`Found: ${s.message}`, 'success');
       return;
     }
 
     // If last step and not found
     if (i === steps.length - 1 && !s.found) {
       messageDiv.innerHTML = '<div class="text-danger">Element not found.</div>';
+      appendNote('Element not found.', 'fail');
       return;
     }
   }
 }
 
 async function startSearch() {
-  reset();
+  // Prepare for a new search without clearing user inputs.
+  // Abort any running animation, clear visual highlights and notes, but keep the input values.
+  abortAnimation = true;
+  // small pause to let any running animation stop
+  await sleep(50);
+  abortAnimation = false;
+  clearHighlights();
+  const notesEl = document.getElementById('notes');
+  if (notesEl) notesEl.innerHTML = '';
+  messageDiv.innerHTML = '';
+
   const arrText = arrayInput.value.trim();
   if (!arrText) {
     messageDiv.innerHTML = '<div class="text-danger">Please enter an array.</div>';

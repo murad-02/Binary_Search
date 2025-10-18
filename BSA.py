@@ -44,19 +44,33 @@ def binary_search_steps(arr, target):
     iterate the steps without duplicating logic.
     """
     low, high = 0, len(arr) - 1
+    step = 1
 
     while low <= high:
         mid = (low + high) // 2
         mid_val = arr[mid]
-        # Yield the current step state
-        yield {"low": low, "mid": mid, "high": high, "midValue": mid_val, "found": (mid_val == target)}
 
+        # Build a human-readable message describing this step's decision
+        if mid_val == target:
+            message = f"Step {step}: mid = {mid}, arr[mid] = {mid_val} → target == arr[mid], found."
+        elif mid_val < target:
+            # target is greater, move right
+            message = f"Step {step}: mid = {mid}, arr[mid] = {mid_val} → target > arr[mid], move right (low = {mid + 1})."
+        else:
+            # target is smaller, move left
+            message = f"Step {step}: mid = {mid}, arr[mid] = {mid_val} → target < arr[mid], move left (high = {mid - 1})."
+
+        # Yield the current step state including a descriptive message
+        yield {"low": low, "mid": mid, "high": high, "midValue": mid_val, "found": (mid_val == target), "message": message}
+
+        # Update pointers for next iteration
         if mid_val == target:
             return
         elif mid_val < target:
             low = mid + 1
         else:
             high = mid - 1
+        step += 1
 
     # If we exit the loop, nothing more to yield: caller will interpret as not found.
 
