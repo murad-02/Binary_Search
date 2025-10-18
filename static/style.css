@@ -8,13 +8,22 @@ body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvet
   border: 2px solid #dee2e6;
   border-radius: 6px;
   background: white;
-  transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
+  transition: transform 0.5s ease, box-shadow 0.5s ease, background-color 0.5s ease, border-color 0.5s ease, color 0.5s ease;
   font-weight: 600;
 }
-.array-box.low { box-shadow: 0 4px 10px rgba(0,123,255,0.15); transform: translateY(-6px); border-color: #0d6efd; }
-.array-box.mid { box-shadow: 0 4px 10px rgba(255,193,7,0.15); transform: translateY(-6px); border-color: #ffc107; }
-.array-box.high { box-shadow: 0 4px 10px rgba(220,53,69,0.15); transform: translateY(-6px); border-color: #dc3545; }
+.array-box.low { box-shadow: 0 6px 14px rgba(13,110,253,0.12); transform: translateY(-6px); border-color: #0d6efd; }
+.array-box.mid { box-shadow: 0 6px 14px rgba(255,193,7,0.12); transform: translateY(-6px); border-color: #ffc107; }
+.array-box.high { box-shadow: 0 6px 14px rgba(220,53,69,0.12); transform: translateY(-6px); border-color: #dc3545; }
 .array-box.found { background-color: #198754; color: white; border-color: #198754; transform: translateY(-8px); }
+
+.fade-in {
+  opacity: 1;
+  transition: opacity 0.5s ease;
+}
+.fade-out {
+  opacity: 0.3;
+  transition: opacity 0.5s ease;
+}
 
 #arrayContainer { gap: 12px; }
 

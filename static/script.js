@@ -1,6 +1,4 @@
-// Binary Search Visualizer client script
-// Sends AJAX POST to /search with array and target, then animates each step.
-
+// Binary Search Visualizer client script (sequential await-based animation)
 const startBtn = document.getElementById('startBtn');
 const resetBtn = document.getElementById('resetBtn');
 const arrayInput = document.getElementById('arrayInput');
@@ -9,15 +7,10 @@ const arrayContainer = document.getElementById('arrayContainer');
 const messageDiv = document.getElementById('message');
 
 let currentBoxes = [];
-let animationTimeouts = [];
-
-function clearAnimation() {
-  animationTimeouts.forEach(t => clearTimeout(t));
-  animationTimeouts = [];
-}
+let abortAnimation = false;
 
 function reset() {
-  clearAnimation();
+  abortAnimation = true;
   currentBoxes = [];
   arrayContainer.innerHTML = '';
   messageDiv.innerHTML = '';
@@ -27,7 +20,7 @@ function renderArray(arr) {
   arrayContainer.innerHTML = '';
   currentBoxes = arr.map((v, i) => {
     const div = document.createElement('div');
-    div.className = 'array-box';
+    div.className = 'array-box fade-in';
     div.textContent = v;
     div.dataset.index = i;
     arrayContainer.appendChild(div);
@@ -35,20 +28,74 @@ function renderArray(arr) {
   });
 }
 
-function colorBoxes(state) {
-  // clear all highlights
+function clearHighlights() {
   currentBoxes.forEach(b => {
-    b.classList.remove('low');
-    b.classList.remove('mid');
-    b.classList.remove('high');
-    b.classList.remove('found');
+    b.classList.remove('low', 'mid', 'high', 'found', 'fade-out');
+    b.classList.add('fade-in');
   });
+}
 
-  const { low, mid, high, found } = state;
-  if (low != null && currentBoxes[low]) currentBoxes[low].classList.add('low');
-  if (mid != null && currentBoxes[mid]) currentBoxes[mid].classList.add('mid');
-  if (high != null && currentBoxes[high]) currentBoxes[high].classList.add('high');
-  if (found && currentBoxes[mid]) currentBoxes[mid].classList.add('found');
+function setHighlight(index, cls) {
+  if (index == null || !currentBoxes[index]) return;
+  currentBoxes[index].classList.add(cls);
+  currentBoxes[index].classList.remove('fade-out');
+}
+
+function removeHighlight(index, cls) {
+  if (index == null || !currentBoxes[index]) return;
+  currentBoxes[index].classList.remove(cls);
+  currentBoxes[index].classList.add('fade-out');
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function animateSteps(steps, stepDelay = 1200) {
+  // stepDelay controls the total time per logical step group (low->mid->high)
+  // We'll show low, wait, then mid, wait, then high, wait, then move to next step.
+  abortAnimation = false;
+  clearHighlights();
+
+  for (let i = 0; i < steps.length; i++) {
+    if (abortAnimation) return;
+    const s = steps[i];
+
+    // Show LOW
+    clearHighlights();
+    setHighlight(s.low, 'low');
+    await sleep( Math.max(1000, Math.min(1500, stepDelay)) );
+    if (abortAnimation) return;
+
+    // Show MID
+    removeHighlight(s.low, 'low');
+    setHighlight(s.mid, 'mid');
+    await sleep( Math.max(1000, Math.min(1500, stepDelay)) );
+    if (abortAnimation) return;
+
+    // Show HIGH
+    removeHighlight(s.mid, 'mid');
+    setHighlight(s.high, 'high');
+    await sleep( Math.max(1000, Math.min(1500, stepDelay)) );
+    if (abortAnimation) return;
+
+    // Clear high highlight before next step (but keep fade)
+    removeHighlight(s.high, 'high');
+
+    // If found, highlight green and stop
+    if (s.found) {
+      clearHighlights();
+      setHighlight(s.mid, 'found');
+      messageDiv.innerHTML = `<div class="text-success">Element found at index ${s.mid}.</div>`;
+      return;
+    }
+
+    // If last step and not found
+    if (i === steps.length - 1 && !s.found) {
+      messageDiv.innerHTML = '<div class="text-danger">Element not found.</div>';
+      return;
+    }
+  }
 }
 
 async function startSearch() {
@@ -92,29 +139,13 @@ async function startSearch() {
   const steps = data.steps || [];
 
   if (!steps.length) {
-    // No steps -> not found
     messageDiv.innerHTML = '<div class="text-danger">Element not found.</div>';
     return;
   }
 
-  // Animate steps with a small delay between them
   messageDiv.innerHTML = '<div class="text-info">Animating...</div>';
-  let delay = 0;
-  const stepDelay = 900; // ms
-
-  steps.forEach((s, idx) => {
-    const t = setTimeout(() => {
-      colorBoxes(s);
-      if (s.found) {
-        messageDiv.innerHTML = `<div class="text-success">Element found at index ${s.mid}.</div>`;
-      } else if (idx === steps.length - 1 && !s.found) {
-        // final step, not found
-        messageDiv.innerHTML = '<div class="text-danger">Element not found.</div>';
-      }
-    }, delay);
-    animationTimeouts.push(t);
-    delay += stepDelay;
-  });
+  // Animate sequentially; default 1200ms per sub-step (shows low/mid/high each ~1.2s)
+  await animateSteps(steps, 1200);
 }
 
 startBtn.addEventListener('click', startSearch);
