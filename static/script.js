@@ -29,6 +29,13 @@ function renderArray(arr) {
     div.className = 'array-box fade-in';
     div.textContent = v;
     div.dataset.index = i;
+    // Add index tooltip
+    div.title = `Index: ${i}`;
+    // Add small index label below
+    const indexLabel = document.createElement('small');
+    indexLabel.className = 'index-label';
+    indexLabel.textContent = i;
+    div.appendChild(indexLabel);
     arrayContainer.appendChild(div);
     return div;
   });
@@ -46,10 +53,22 @@ function appendNote(text, kind = 'normal') {
   if (!notes) return;
   const div = document.createElement('div');
   div.className = `note-entry ${kind}`;
-  div.textContent = text;
+  
+  // Add appropriate emoji based on note type
+  let emoji = '🔍'; // default search emoji
+  if (kind === 'success') emoji = '✅';
+  else if (kind === 'fail') emoji = '❌';
+  else if (text.includes('move right')) emoji = '➡️';
+  else if (text.includes('move left')) emoji = '⬅️';
+  
+  div.textContent = `${emoji} ${text}`;
   notes.appendChild(div);
-  // auto-scroll to bottom
-  notes.scrollTop = notes.scrollHeight;
+  
+  // Smooth scroll to new note
+  div.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  
+  // Trigger entrance animation
+  requestAnimationFrame(() => div.classList.add('show'));
 }
 
 function setHighlight(index, cls) {
