@@ -138,11 +138,53 @@ async function animateSteps(steps, stepDelay = 1200) {
   }
 }
 
+async function animateSorting(originalArr, sortedArr) {
+  // Create a mapping of sorted values to a queue of target indices (handles duplicates)
+  const newIndices = {};
+  sortedArr.forEach((val, idx) => {
+    const key = String(val);
+    if (!newIndices[key]) newIndices[key] = [];
+    newIndices[key].push(idx);
+  });
+
+  // First, mark all elements that need to move
+  currentBoxes.forEach((box, idx) => {
+    const value = originalArr[idx];
+    const key = String(value);
+    const queue = newIndices[key] || [];
+    const newIdx = queue.length ? queue[0] : idx;
+    if (newIdx !== idx) {
+      box.classList.add('will-move');
+    }
+  });
+
+  await sleep(500); // Pause to show which will move
+
+  // Animate each element to its new position. We consume the queue so duplicates map correctly.
+  const promises = currentBoxes.map((box, idx) => {
+    const value = originalArr[idx];
+    const key = String(value);
+    const queue = newIndices[key] || [];
+    const newIdx = queue.length ? queue.shift() : idx;
+    if (newIdx !== idx) {
+      const translateX = (newIdx - idx) * (64 + 12); // box width + gap
+      box.style.transform = `translateX(${translateX}px)`;
+      return sleep(800); // Duration of move animation
+    }
+    return Promise.resolve();
+  });
+
+  await Promise.all(promises);
+  await sleep(300); // Small pause before rendering final sorted array
+
+  // Render the sorted array
+  renderArray(sortedArr);
+  appendNote('🔄 Array was automatically sorted for binary search.', 'info');
+}
+
 async function startSearch() {
   // Prepare for a new search without clearing user inputs.
-  // Abort any running animation, clear visual highlights and notes, but keep the input values.
   abortAnimation = true;
-  // small pause to let any running animation stop
   await sleep(50);
   abortAnimation = false;
   clearHighlights();
@@ -155,14 +197,36 @@ async function startSearch() {
     messageDiv.innerHTML = '<div class="text-danger">Please enter an array.</div>';
     return;
   }
-  const arr = arrText.split(/\s+/).map(x => isNaN(x) ? x : (x.includes('.') ? parseFloat(x) : parseInt(x)));
+  
+  // Parse input array and validate
+  let arr;
+  try {
+    arr = arrText.split(/\s+/).map(x => {
+      if (isNaN(x)) throw new Error('Invalid number');
+      return x.includes('.') ? parseFloat(x) : parseInt(x);
+    });
+    if (arr.length === 0) throw new Error('Empty array');
+  } catch (err) {
+    messageDiv.innerHTML = '<div class="text-danger">Invalid array input. Please enter valid numbers.</div>';
+    return;
+  }
+
   const targetRaw = targetInput.value.trim();
   if (!targetRaw) {
     messageDiv.innerHTML = '<div class="text-danger">Please enter a target value.</div>';
     return;
   }
-  const target = isNaN(targetRaw) ? targetRaw : (targetRaw.includes('.') ? parseFloat(targetRaw) : parseInt(targetRaw));
 
+  let target;
+  try {
+    target = targetRaw.includes('.') ? parseFloat(targetRaw) : parseInt(targetRaw);
+    if (isNaN(target)) throw new Error('Invalid target');
+  } catch (err) {
+    messageDiv.innerHTML = '<div class="text-danger">Invalid target value. Please enter a valid number.</div>';
+    return;
+  }
+
+  // First render the original array
   renderArray(arr);
 
   // POST to backend
@@ -187,10 +251,19 @@ async function startSearch() {
 
   const data = await resp.json();
   const steps = data.steps || [];
-
   if (!steps.length) {
     messageDiv.innerHTML = '<div class="text-danger">Element not found.</div>';
     return;
+  }
+
+  // If server indicated the array was not sorted, animate sorting first and
+  // then run the binary search steps on the sorted array. The server returns
+  // steps computed on the sorted array, so we must display that sorted array.
+  if (!data.sorted) {
+    const sortedArr = [...arr].sort((a, b) => a - b);
+    await animateSorting(arr, sortedArr);
+    // Update the local array and currentBoxes now that we've rendered the sorted array
+    arr = sortedArr;
   }
 
   messageDiv.innerHTML = '<div class="text-info">Animating...</div>';

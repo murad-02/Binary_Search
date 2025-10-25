@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, jsonify
-from BSA import binary_search_steps
+from BSA import binary_search_steps, binary_search
 
 app = Flask(__name__)
 
@@ -20,12 +20,20 @@ def search():
     target = data.get('target')
 
     # Basic validation and normalization
+    # Convert each array element to int if it is integral, otherwise float.
     try:
-        arr = [float(x) for x in arr]
-        # Keep original types if integers
-        arr = [int(x) if float(x).is_integer() else x for x in arr]
-        target = float(target)
-        target = int(target) if float(target).is_integer() else target
+        normalized = []
+        for x in arr:
+            # Handle values that may already be numeric or strings
+            val = float(x)
+            if val.is_integer():
+                normalized.append(int(val))
+            else:
+                normalized.append(val)
+        arr = normalized
+
+        t = float(target)
+        target = int(t) if t.is_integer() else t
     except Exception:
         return jsonify({'error': 'Invalid input. Ensure array and target are numeric.'}), 400
 
@@ -34,11 +42,13 @@ def search():
     if not sorted_flag:
         arr = sorted(arr)
 
-    steps = []
-    for step in binary_search_steps(arr, target):
-        steps.append(step)
+    steps = list(binary_search_steps(arr, target))
 
-    return jsonify({'steps': steps, 'sorted': sorted_flag})
+    # Compute the final result index (uses the same algorithm). This is explicit and
+    # helpful for clients that want a single final answer rather than only the step stream.
+    result_index = binary_search(arr, target)
+
+    return jsonify({'steps': steps, 'sorted': sorted_flag, 'result': result_index})
 
 
 if __name__ == '__main__':
