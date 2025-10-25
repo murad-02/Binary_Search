@@ -44,11 +44,12 @@ def search():
 
     steps = list(binary_search_steps(arr, target))
 
-    # Compute the final result index (uses the same algorithm). This is explicit and
-    # helpful for clients that want a single final answer rather than only the step stream.
+    # Compute the final result index (uses the same algorithm). Also compute
+    # all indices where the target appears in the sorted array (handles duplicates).
     result_index = binary_search(arr, target)
+    results = [i for i, v in enumerate(arr) if v == target]
 
-    return jsonify({'steps': steps, 'sorted': sorted_flag, 'result': result_index})
+    return jsonify({'steps': steps, 'sorted': sorted_flag, 'result': result_index, 'results': results})
 
 
 if __name__ == '__main__':

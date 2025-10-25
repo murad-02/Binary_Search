@@ -269,6 +269,24 @@ async function startSearch() {
   messageDiv.innerHTML = '<div class="text-info">Animating...</div>';
   // Animate sequentially; default 1200ms per sub-step (shows low/mid/high each ~1.2s)
   await animateSteps(steps, 1200);
+
+  // After animation, if the server returned all matching indices (duplicates), highlight them
+  const results = Array.isArray(data.results) && data.results.length ? data.results : (data.result !== undefined ? [data.result] : []);
+  if (results.length) {
+    // Clear any previous highlights and mark all matched indices
+    clearHighlights();
+    results.forEach(idx => {
+      if (currentBoxes[idx]) currentBoxes[idx].classList.add('found');
+    });
+
+    if (results.length === 1) {
+      appendNote(`Found target ${target} at index ${results[0]}.`, 'success');
+      messageDiv.innerHTML = `<div class="text-success">Target ${target} found at index ${results[0]}.</div>`;
+    } else {
+      appendNote(`Found target ${target} at indices ${results.join(', ')}.`, 'success');
+      messageDiv.innerHTML = `<div class="text-success">Target ${target} found at indices ${results.join(', ')}.</div>`;
+    }
+  }
 }
 
 startBtn.addEventListener('click', startSearch);
